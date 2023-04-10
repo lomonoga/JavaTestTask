@@ -5,7 +5,8 @@ import java.util.*;
 
 public class Naumen {
     public static void main(String[] args) throws Exception {
-        new Naumen().determineNumberOfRequests();
+        new Naumen().determineNumberOfRequests(Boolean.FALSE,
+                "C:\\Users\\trint\\Desktop\\javaNaumen\\src\\main\\java\\naumen");
     }
 
     /**
@@ -13,43 +14,45 @@ public class Naumen {
      * После проходимся по запросам и записываем их в cash
      * Как только cash заполнился начинаем заменять значение в cash
      * Заменяем след образом:
-     * 0. Берём из cash элементы, которые встретятся не больше раз, чем новый элемент (по частотности словаря)
-     * 1. Проходимся по каждому выбранному элементу из cash и смотрим какой след из этих 2 элементов (элемент из cash и новый элемент)
-     * встретится в запросе
-     * 2. Если встретился новый, но заменяем значение в cash, если же элемент из cash, то оставляем как есть
-     * Таким образом мы динамически меняем cash в зависимости от запросов и минимилизируем запросы к распределённой системе
+     * 0. Находим след такой же запрос, если его нет, то cash не меняем, тк запросов таких больше не будет
+     * 1. Проверяем, если cash будет задействован весь до того, как мы дойдём до этого элемента, то ничего не делаем, тк
+     * это не изменит кол-во обращений к системе.
+     * Если задействован не весь, то берём элемент из cash и перезаписываем его на новый
+     * 2. В каждой итерации подсчитываем сколько раз обращались к cash, для дальнейшего ответа на вопрос
+     * Таким образом мы динамически меняем cash в зависимости от запросов и минимализируем запросы к распределённой системе
      * @throws Exception Выбрасывает исключения при некорректной работе с файлами
+     * @param test
+     * @param path Путь для записи и чтения файлов, по условию он пуст
      */
-    public void determineNumberOfRequests() throws Exception {
-        // Работаем с файлом
-        var path = "C:\\Users\\trint\\Desktop\\javaNaumen\\src\\main\\java\\naumen";
+    public void determineNumberOfRequests(Boolean test, String path) throws Exception {
+        //Подключение к файлу
         var file = new File(path, "input.txt");
-        if (!file.exists()) {
-            throw new FileNotFoundException();
-        }
+        if (!file.exists()) throw new FileNotFoundException();
 
-        //Создаём все что нам нужно (словари частотности, лист с запросами и hashset cash и др)
-        var dictRequests = new HashMap<String, Integer>();
-        var dictResponse = new HashMap<String, Integer>();
+        //Создаём все что нам нужно
         ArrayList<String> listRequests;
-        HashSet<String> hashSetCash;
+        HashSet<String> cash;
+        HashMap<String, Integer> dictRequests;
+        HashMap<String, Integer> dictResponse;
         var scannerFile = new Scanner(file);
         var maxCash = 0;
         var requests = 0;
         var skipRequests = 0;
 
-        // Пропускает первую строку и запоминаем размер кэша и колличество обращений
+        // Обрабатываем первую строку и запоминаем размер кэша и колличество обращений
         try {
             var array = scannerFile.nextLine().split(" ");
             maxCash = Integer.parseInt(array[0]);
             requests =Integer.parseInt(array[1]);
             listRequests = new ArrayList<>(requests);
-            hashSetCash = new HashSet<>(maxCash);
+            dictRequests = new HashMap<>();
+            dictResponse = new HashMap<>();
+            cash = new HashSet<>(maxCash);
         } catch (Exception e) {
             throw new Exception(e);
         }
 
-        // Проходим по строкам файла и записываем порядок и количество запросов
+        // Проходим по строкам файла и записываем порядок запросов и количество каждого запроса
         while (scannerFile.hasNextLine()) {
             var item = scannerFile.nextLine();
             listRequests.add(item);
@@ -65,47 +68,43 @@ public class Naumen {
         //Реализация алгоритма, описанного в javaDoc
         for (var i = 0; i < requests; i++) {
             var newRequest = listRequests.get(i);
-
             if (dictResponse.containsKey(newRequest)) {
                 dictResponse.replace(newRequest, dictResponse.get(newRequest) + 1);
             } else {
                 dictResponse.put(newRequest, 1);
             }
-
-            if (hashSetCash.size() < maxCash) {
-                if (!hashSetCash.contains(newRequest))
-                    hashSetCash.add(newRequest);
-                else
-                    skipRequests++;
-            }
+            if (cash.contains(newRequest)) skipRequests++;
+            if (cash.size() < maxCash) cash.add(newRequest);
             else {
+                var index = -1;
+                if (dictRequests.get(newRequest) - dictResponse.get(newRequest) < 1) continue;
+                for (var rangeIndex = i + 1; rangeIndex < requests; rangeIndex++) {
+                    if (listRequests.get(rangeIndex) == newRequest) {
+                        index = rangeIndex;
+                        break;
+                    }
+                }
+                for (String cashItem: cash) {
+                    for (var indexCash = i; indexCash < index; indexCash++) {
+                        if (cashItem == listRequests.get(indexCash)) break;
+                        cash.remove(cashItem);
+                        cash.add(newRequest);
+                    }
+                }
             }
-
         }
 
+        if (Boolean.FALSE.equals(test))
+            makeFileWithResult(requests - skipRequests, path);
+    }
 
-
-
-
-
-
-
-
-
-
-
-/*        // Создаём лист и сортируем словарь по значению
-        List<Map.Entry<String, Integer>> list = new ArrayList<>(dictRequests.entrySet());
-        list.sort((o1, o2) -> (o2.getValue()).compareTo(o1.getValue()));
-
-        // Считаем сколько раз система будет обращаться
-        for (var i = 0; i < maxCash; i++) {
-            requests -= Math.max(list.get(i).getValue() - 1, 0);
-        }*/
-
-
-
-
+    /**
+     *
+     * @param value Значение для записи в файл
+     * @param path Путь для записи
+     * @throws Exception Выбрасывает исключения при некорректной работе с файлами
+     */
+    private void makeFileWithResult(Integer value, String path) throws Exception {
         // Создаём файл и записываем туда результат
         var outputFile = new File(path, "output.txt");
         try {
@@ -116,7 +115,7 @@ public class Naumen {
             throw new Exception(e);
         }
         try (FileWriter fileWriter = new FileWriter(outputFile)) {
-            fileWriter.write(Integer.toString(requests));
+            fileWriter.write(Integer.toString(value));
         }
     }
 }
