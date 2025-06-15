@@ -1,14 +1,14 @@
-package naumen;
+package lmg;
 
-import naumen.Exceptions.EmptyFileException;
+import lmg.Exceptions.EmptyFileException;
 
 import java.io.*;
 import java.util.*;
 
-public class Naumen {
+public class Solution {
     public static void main(String[] args) throws Exception {
-        new Naumen().determineNumberOfRequests(Boolean.FALSE,
-                "src/main/java/naumen", "input.txt");
+        new Solution().determineNumberOfRequests(Boolean.FALSE,
+                "src/main/java/lmg", "input.txt");
     }
 
     /**

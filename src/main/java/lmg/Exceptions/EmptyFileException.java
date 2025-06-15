@@ -1,4 +1,4 @@
-package naumen.Exceptions;
+package lmg.Exceptions;
 
 public class EmptyFileException extends Exception {
     public EmptyFileException() {
